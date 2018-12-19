@@ -1,4 +1,6 @@
+require('dotenv').config()
 const express = require('express')
+const axios = require('axios')
 const puppeteer = require('puppeteer')
 
 const app = express()
@@ -7,6 +9,10 @@ app.get('/', (req, res) => {
 	fetchNews().then(result => {
 		res.send(result)
 	})
+})
+app.get('/push', async (req, res) => {
+	await sendPush()
+	res.send('sent')
 })
 
 app.listen(5000, () => {
@@ -30,4 +36,34 @@ const fetchNews = async () => {
 	})
 	await browser.close()
 	return results
+}
+
+/**
+ * @link https://firebase.google.com/docs/cloud-messaging/http-server-ref
+ * Firebase Cloud Messaging の HTTP プロトコル
+ */
+const sendPush = async () => {
+	const res = await axios.post(
+		'https://fcm.googleapis.com/fcm/send',
+		{
+			"to": "/topics/all",
+			"priority": "high",
+			"notification": {
+				"title": "テスト Title",
+				"body": "テスト Body"
+			},
+			"data": {
+				"id": "1002",
+				"message": "message 文字列",
+				"metadata": "metadata 文字列",
+				"click_action": "FLUTTER_NOTIFICATION_CLICK"
+			}
+		},
+		{
+			headers: {
+				'Authorization': `key=${process.env.FCM_SERVER_KEY}`,
+				'Content-Type': "application/json"
+			}
+		}
+	).catch(err => console.log(err))
 }
